@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DesignCheck | Professional Design Analyzer</title>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="glass-header">
+        <div class="header-container">
+            <div class="logo">
+                <span class="logo-icon"><i class="fas fa-layer-group"></i></span>
+                <h1>Design<span>Check</span></h1>
+            </div>
+            
+            <div class="profile-section">
+                <!-- Login Button (Visible when logged out) -->
+                <button id="login-btn" class="glass-btn login-btn"><i class="fab fa-google"></i> Login</button>
+
+                <!-- Profile Icon (Visible when logged in) -->
+                <div class="profile-icon" id="profile-btn" style="display: none;">
+                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Profile" id="user-avatar">
+                </div>
+                
+                <!-- Fancy Dropdown Menu -->
+                <div class="dropdown-menu glass-morphism" id="profile-dropdown">
+                    <div class="dropdown-header">
+                        <div class="user-info-card">
+                            <p class="user-email" id="display-email">Email loading...</p>
+                            <span class="user-role" id="display-role">Free User</span>
+                        </div>
+                    </div>
+                    
+                    <div class="api-settings-box">
+                        <label for="gemini-key"><i class="fas fa-key"></i> API Settings</label>
+                        <div class="input-group">
+                            <input type="password" id="gemini-key" placeholder="Enter Gemini API Key...">
+                            <button id="save-key-btn" title="Save Key"><i class="fas fa-save"></i></button>
+                        </div>
+                    </div>
+
+                    <ul class="dropdown-list">
+                        <li><a href="#"><i class="fas fa-coins"></i> Credits: <span id="display-credits">0</span></a></li>
+                        <li class="admin-only" style="display: none;"><a href="#"><i class="fas fa-user-shield"></i> Admin Panel</a></li>
+                    </ul>
+                    
+                    <div class="dropdown-footer">
+                        <button id="logout-btn" class="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="app-container" class="fade-in">
+        <!-- Dashboard Content will be injected here -->
+        <section class="welcome-section">
+            <h2>Welcome to DesignCheck</h2>
+            <p>Upload your design to get a professional AI analysis.</p>
+            <div class="upload-placeholder glass-box">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Waiting for initialization...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Firebase (Modular SDK) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        
+        // Exporting for use in modular files (auth.js)
+        window.firebase = { initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged };
+    </script>
+
+    <!-- Project Scripts (Modular) -->
+    <script src="auth.js" defer></script>
+    <script src="credits.js" defer></script>
+    <script src="analysis.js" defer></script>
+    <script src="editor.js" defer></script>
+</body>
+</html>
