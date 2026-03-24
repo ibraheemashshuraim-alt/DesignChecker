@@ -119,7 +119,7 @@ MUST include:
             contents: [{
                 parts: [
                     { text: promptText },
-                    { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } }
+                    { inline_data: { mime_type: currentMimeType, data: currentImageBase64 } }
                 ]
             }]
         };
