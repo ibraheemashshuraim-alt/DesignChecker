@@ -18,39 +18,44 @@
                 <h1>Design<span>Check</span></h1>
             </div>
             
-            <div class="profile-section">
-                <!-- Login Button (Visible when logged out) -->
-                <button id="login-btn" class="glass-btn login-btn"><i class="fab fa-google"></i> Login</button>
+            <div class="header-right">
+                <!-- Add new Dashboard Button -->
+                <button class="glass-btn primary-btn dashboard-btn"><i class="fas fa-border-all"></i> Dashboard</button>
 
-                <!-- Profile Icon (Visible when logged in) -->
-                <div class="profile-icon" id="profile-btn" style="display: none;">
-                    <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Profile" id="user-avatar">
-                </div>
-                
-                <!-- Fancy Dropdown Menu -->
-                <div class="dropdown-menu glass-morphism" id="profile-dropdown">
-                    <div class="dropdown-header">
-                        <div class="user-info-card">
-                            <p class="user-email" id="display-email">Email loading...</p>
-                            <span class="user-role" id="display-role">Free User</span>
-                        </div>
+                <div class="profile-section">
+                    <!-- Login Button (Visible when logged out) -->
+                    <button id="login-btn" class="glass-btn login-btn"><i class="fab fa-google"></i> Login</button>
+
+                    <!-- Profile Icon (Visible when logged in) -->
+                    <div class="profile-icon" id="profile-btn" style="display: none;">
+                        <img src="https://ui-avatars.com/api/?name=User&background=random" alt="Profile" id="user-avatar">
                     </div>
                     
-                    <div class="api-settings-box">
-                        <label for="gemini-key"><i class="fas fa-key"></i> API Settings</label>
-                        <div class="input-group">
-                            <input type="password" id="gemini-key" placeholder="Enter Gemini API Key...">
-                            <button id="save-key-btn" title="Save Key"><i class="fas fa-save"></i></button>
+                    <!-- Fancy Dropdown Menu -->
+                    <div class="dropdown-menu glass-morphism" id="profile-dropdown">
+                        <div class="dropdown-header">
+                            <div class="user-info-card">
+                                <p class="user-email" id="display-email">Email loading...</p>
+                                <span class="user-role" id="display-role">Free User</span>
+                            </div>
                         </div>
-                    </div>
+                        
+                        <div class="api-settings-box">
+                            <label for="gemini-key"><i class="fas fa-key"></i> API Settings</label>
+                            <div class="input-group">
+                                <input type="password" id="gemini-key" placeholder="Enter Gemini API Key...">
+                                <button id="save-key-btn" title="Save Key"><i class="fas fa-save"></i></button>
+                            </div>
+                        </div>
 
-                    <ul class="dropdown-list">
-                        <li><a href="#"><i class="fas fa-coins"></i> Credits: <span id="display-credits">0</span></a></li>
-                        <li class="admin-only" style="display: none;"><a href="#"><i class="fas fa-user-shield"></i> Admin Panel</a></li>
-                    </ul>
-                    
-                    <div class="dropdown-footer">
-                        <button id="logout-btn" class="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                        <ul class="dropdown-list">
+                            <li><a href="#"><i class="fas fa-coins"></i> Credits: <span id="display-credits">0</span></a></li>
+                            <li class="admin-only" style="display: none;"><a href="#"><i class="fas fa-user-shield"></i> Admin Panel</a></li>
+                        </ul>
+                        
+                        <div class="dropdown-footer">
+                            <button id="logout-btn" class="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -59,28 +64,112 @@
 
     <main id="app-container" class="fade-in">
         <!-- Dashboard Content will be injected here -->
-        <section class="welcome-section">
-            <h2>Welcome to DesignCheck</h2>
-            <p>Upload your design to get a professional AI analysis.</p>
-            <div class="upload-placeholder glass-box">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Waiting for initialization...</p>
+        
+        <div class="main-layout">
+            <!-- Left Column: Analysis Results -->
+            <div id="analysis-results" class="glass-box analysis-container">
+                <section class="welcome-section">
+                    <h2>Professional Design Analyzer</h2>
+                    <p>اپنے ڈیزائن کو AI کی مدد سے بہتر بنائیں</p>
+                </section>
+                <div class="analysis-placeholder">
+                    <p class="waiting-text">...WAITING FOR DESIGN</p>
+                    <div class="mockup-skeleton">
+                        <!-- We can create visual representation of analysis info here -->
+                        <div class="skeleton-line title"></div>
+                        <div class="skeleton-score"></div>
+                        <div class="skeleton-grid">
+                            <div class="skeleton-item"><div class="label"></div><div class="value"></div></div>
+                            <div class="skeleton-item"><div class="label"></div><div class="value"></div></div>
+                        </div>
+                        <div class="skeleton-text-block"></div>
+                        <div class="skeleton-grid">
+                            <div class="skeleton-item"><div class="label"></div><div class="value"></div></div>
+                            <div class="skeleton-item"><div class="label"></div><div class="value"></div></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </section>
+
+            <!-- Right Column: Design Workspace -->
+            <div id="design-workspace" class="glass-box workspace-container">
+                <div class="upload-placeholder">
+                    <div class="upload-icon-wrapper">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <h3>اپنا ڈیزائن ڈریگ کر کے یہاں لائیں</h3>
+                    <div class="format-tags">
+                        <span>PNG</span>
+                        <span>JPG</span>
+                        <span>PDF</span>
+                    </div>
+                    <button class="glass-btn primary-btn browse-btn">براؤز کریں</button>
+                </div>
+            </div>
+        </div>
     </main>
 
-    <!-- Firebase (Modular SDK) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        
-        // Exporting for use in modular files (auth.js)
-        window.firebase = { initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged };
-    </script>
+    <!-- Buy Credits Modal -->
+    <div id="buy-credits-modal" class="modal-overlay">
+        <div class="modal-content glass-morphism">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-cart"></i> Buy Credits</h3>
+                <button class="close-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="payment-info">
+                    <p>Transfer amount to our SadaPay number:</p>
+                    <div class="account-number glass-card">
+                        <span id="sadapay-number">0300-1234567</span>
+                        <button id="copy-number-btn"><i class="far fa-copy"></i></button>
+                    </div>
+                    <p class="hint">Enter Transaction ID (TID) below for instant trial credits.</p>
+                </div>
+                <div class="tid-input-group">
+                    <input type="text" id="tid-input" placeholder="Enter 12-digit TID...">
+                    <button id="submit-tid-btn" class="glass-btn primary-btn">Submit TID</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="admin-panel-modal" class="modal-overlay">
+        <div class="modal-content glass-morphism wide-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-shield"></i> Admin Control Panel</h3>
+                <button class="close-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="admin-stats glass-card">
+                    <div class="stat-item">
+                        <span class="label">Total Users</span>
+                        <span id="total-users-count">0</span>
+                    </div>
+                </div>
+                <div class="user-list-container">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Credits</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-user-list">
+                            <!-- Users will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Project Scripts (Modular) -->
-    <script src="auth.js" defer></script>
-    <script src="credits.js" defer></script>
+    <script type="module" src="auth.js"></script>
+    <script type="module" src="credits.js"></script>
     <script src="analysis.js" defer></script>
     <script src="editor.js" defer></script>
 </body>

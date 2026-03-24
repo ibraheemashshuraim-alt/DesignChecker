@@ -1,19 +1,7 @@
-// auth.js - Firebase Authentication & Profile Management
-const firebaseConfig = {
-    apiKey: "AIzaSyC7f4QH6CSRN6dAhGNm7P4kMHTv12mtdEo",
-    authDomain: "designcheck-8be9f.firebaseapp.com",
-    projectId: "designcheck-8be9f",
-    storageBucket: "designcheck-8be9f.firebasestorage.app",
-    messagingSenderId: "766391064183",
-    appId: "1:766391064183:web:36c6d4368196e3db2bd872",
-    measurementId: "G-R8PZGRMJKS"
-};
-
-// Initialize Firebase using the globally exported methods from index.html
-const { initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } = window.firebase;
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+// auth.js - Authentication & Profile Management
+import { auth, db, googleProvider } from './config.js';
+import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import { doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 // DOM Elements
 const loginBtn = document.getElementById('login-btn');
@@ -22,37 +10,63 @@ const profileBtn = document.getElementById('profile-btn');
 const dropdown = document.getElementById('profile-dropdown');
 const userAvatar = document.getElementById('user-avatar');
 const displayEmail = document.getElementById('display-email');
+const displayRole = document.getElementById('display-role');
+const displayCredits = document.getElementById('display-credits');
 const geminiInput = document.getElementById('gemini-key');
 const saveKeyBtn = document.getElementById('save-key-btn');
 
-// --- Auth Logic ---
-onAuthStateChanged(auth, (user) => {
+// --- Auth Observer ---
+onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // User is signed in
+        // User Login UI
         loginBtn.style.display = 'none';
         profileBtn.style.display = 'block';
         userAvatar.src = user.photoURL || `https://ui-avatars.com/api/?name=${user.email}&background=random`;
-        displayEmail.textContent = user.email;
-        displayEmail.title = user.email; // Tooltip for full email
         
-        // Load saved API Key
-        const savedKey = localStorage.getItem('gemini_api_key');
-        if (savedKey) geminiInput.value = savedKey;
+        // Sync User Data to Firestore
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+            await setDoc(userRef, {
+                name: user.displayName,
+                email: user.email,
+                photo: user.photoURL,
+                credits: 10,
+                role: "user",
+                status: "active",
+                createdAt: new Date()
+            });
+        }
+
+        // Real-time listener for UI updates
+        onSnapshot(userRef, (snapshot) => {
+            const data = snapshot.data();
+            if (data) {
+                displayEmail.textContent = data.email;
+                displayRole.textContent = data.role === 'admin' ? 'Administrator' : 'Free User';
+                displayCredits.textContent = data.credits || 0;
+            }
+        });
+
+        // Load API Key
+        geminiInput.value = localStorage.getItem('gemini_api_key') || '';
 
     } else {
-        // User is signed out
+        // User Logout UI
         loginBtn.style.display = 'flex';
         profileBtn.style.display = 'none';
         dropdown.classList.remove('active');
     }
 });
 
+// --- Actions ---
 loginBtn.addEventListener('click', async () => {
     try {
-        await signInWithPopup(auth, provider);
+        await signInWithPopup(auth, googleProvider);
     } catch (error) {
         console.error("Login failed:", error);
-        alert("Login failed. Please try again.");
+        alert("Google Login failed.");
     }
 });
 
@@ -60,7 +74,6 @@ logoutBtn.addEventListener('click', () => {
     signOut(auth);
 });
 
-// --- UI Logic ---
 profileBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     dropdown.classList.toggle('active');
@@ -72,18 +85,12 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// --- API Settings Logic ---
+// Save API Key logic
 saveKeyBtn.addEventListener('click', () => {
     const key = geminiInput.value.trim();
     if (key) {
         localStorage.setItem('gemini_api_key', key);
         saveKeyBtn.innerHTML = '<i class="fas fa-check"></i>';
-        saveKeyBtn.style.background = 'var(--accent)';
-        setTimeout(() => {
-            saveKeyBtn.innerHTML = '<i class="fas fa-save"></i>';
-            saveKeyBtn.style.background = 'var(--primary)';
-        }, 2000);
-    } else {
-        alert("Please enter a valid API key.");
+        setTimeout(() => saveKeyBtn.innerHTML = '<i class="fas fa-save"></i>', 2000);
     }
 });
