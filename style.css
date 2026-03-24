@@ -382,7 +382,7 @@ main {
     background: rgba(15, 23, 35, 0.4); /* Deep dark background matching theme */
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    padding: 30px;
+    padding: 0; /* Padding removed so inner headers can stretch full width */
     display: flex;
     flex-direction: column;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
@@ -409,28 +409,47 @@ main {
 }
 
 .analysis-container {
-    padding-top: 20px;
-    text-align: center;
-}
-
-.analysis-placeholder {
-    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    background: transparent;
-    border-radius: 12px;
-    padding: 10px;
-    position: relative;
-    overflow: hidden;
+}
+
+.analysis-header {
+    background: rgba(0, 0, 0, 0.3);
+    width: 100%;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: flex-end;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .waiting-text {
     color: var(--primary);
     font-weight: 700;
     letter-spacing: 2px;
-    font-size: 12px;
-    margin-top: 5px;
-    align-self: flex-end;
+    font-size: 11px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.analysis-placeholder {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    padding: 40px;
+}
+
+.overlay-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
 }
 
 .mockup-skeleton {
@@ -485,6 +504,7 @@ main {
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 40px;
 }
 
 .upload-placeholder {
