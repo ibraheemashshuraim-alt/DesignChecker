@@ -379,7 +379,7 @@ main {
 
 .glass-box {
     border-radius: 20px;
-    background: rgba(10, 15, 25, 0.6); /* Darker matching new screenshot bg */
+    background: rgba(15, 23, 35, 0.85); /* Slightly more opaque dark */
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     padding: 30px;
@@ -387,11 +387,12 @@ main {
     flex-direction: column;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
     position: relative;
+    overflow: hidden; /* Important for inner gradient borders */
+    border: none; /* Base is borderless */
 }
 
 /* Left Column Styling */
 .gradient-top-border {
-    border: 1px solid rgba(255, 255, 255, 0.05); /* Very subtle border */
     border-top: none;
 }
 
@@ -402,10 +403,9 @@ main {
     top: 0;
     left: 0;
     right: 0;
-    height: 3px;
+    height: 4px;
     background: linear-gradient(90deg, #00f0ff, #b535f6);
-    border-top-left-radius: 20px;
-    border-top-right-radius: 20px;
+    z-index: 10;
 }
 
 .analysis-container {
@@ -439,7 +439,7 @@ main {
     flex-direction: column;
     align-items: center;
     gap: 20px;
-    opacity: 0.1;
+    opacity: 0.15;
 }
 
 .skeleton-score {
@@ -459,20 +459,20 @@ main {
     flex: 1;
     height: 60px;
     border-radius: 8px;
-    background: #fff;
+    background: #ffffff;
 }
 
 .skeleton-text-block {
     width: 90%;
     height: 100px;
     border-radius: 8px;
-    background: #fff;
+    background: #ffffff;
 }
 
 
 /* Right Column Styling */
 .dashed-border-box {
-    border: 1px dashed rgba(255, 255, 255, 0.15); /* Dotted/dashed border */
+    border: 1px dashed rgba(255, 255, 255, 0.25); /* Stronger dotted/dashed border */
 }
 
 .workspace-container {
