@@ -344,42 +344,16 @@ main {
     width: 100%;
 }
 
-/* Layout System */
-.main-layout {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 30px;
-    width: 100%;
-    max-width: 1600px;
-    min-height: calc(100vh - 140px);
-}
-
-.glass-box {
-    border-radius: 20px;
-    border: 1px solid var(--glass-border);
-    background: var(--bg-card);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    padding: 30px;
-    display: flex;
-    flex-direction: column;
-    box-shadow: var(--shadow);
-}
-
-/* Left Column Styling */
-.analysis-container {
-    padding-top: 40px;
-    text-align: center;
-}
-
 .welcome-section {
-    margin-bottom: 40px;
+    text-align: center;
+    margin-bottom: 30px;
+    width: 100%;
 }
 
 .welcome-section h2 {
-    font-size: 42px;
+    font-size: 38px;
     font-weight: 700;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
     color: #fff;
 }
 
@@ -389,27 +363,73 @@ main {
 
 .welcome-section p {
     color: var(--text-secondary);
-    font-size: 18px;
-    font-weight: 300;
+    font-size: 16px;
+    font-weight: 400;
+}
+
+/* Layout System */
+.main-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    width: 100%;
+    max-width: 1200px; /* Kept concise like the screenshot */
+    min-height: calc(100vh - 240px);
+}
+
+.glass-box {
+    border-radius: 20px;
+    background: rgba(10, 15, 25, 0.6); /* Darker matching new screenshot bg */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+
+/* Left Column Styling */
+.gradient-top-border {
+    border: 1px solid rgba(255, 255, 255, 0.05); /* Very subtle border */
+    border-top: none;
+}
+
+/* Pseudo element for gradient top border to keep border-radius intact */
+.gradient-top-border::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00f0ff, #b535f6);
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+}
+
+.analysis-container {
+    padding-top: 20px;
+    text-align: center;
 }
 
 .analysis-placeholder {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.2);
+    background: transparent;
     border-radius: 12px;
-    padding: 20px;
+    padding: 10px;
     position: relative;
     overflow: hidden;
 }
 
 .waiting-text {
     color: var(--primary);
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: 2px;
-    font-size: 14px;
-    margin-top: 10px;
+    font-size: 12px;
+    margin-top: 5px;
     align-self: flex-end;
 }
 
@@ -451,12 +471,14 @@ main {
 
 
 /* Right Column Styling */
+.dashed-border-box {
+    border: 1px dashed rgba(255, 255, 255, 0.15); /* Dotted/dashed border */
+}
+
 .workspace-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 1px dashed rgba(0, 240, 255, 0.3); /* Distinct style for drag n drop */
-    background: rgba(0, 240, 255, 0.02);
 }
 
 .upload-placeholder {

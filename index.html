@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css?v=2.2">
+    <link rel="stylesheet" href="style.css?v=2.3">
 </head>
 <body>
     <header class="glass-header">
@@ -66,13 +66,14 @@
     <main id="app-container" class="fade-in">
         <!-- Dashboard Content will be injected here -->
         
+        <section class="welcome-section">
+            <h2>Professional Design Analyzer</h2>
+            <p>اپنے ڈیزائن کو AI کی مدد سے بہتر بنائیں</p>
+        </section>
+
         <div class="main-layout">
             <!-- Left Column: Analysis Results -->
-            <div id="analysis-results" class="glass-box analysis-container">
-                <section class="welcome-section">
-                    <h2>Professional Design Analyzer</h2>
-                    <p>اپنے ڈیزائن کو AI کی مدد سے بہتر بنائیں</p>
-                </section>
+            <div id="analysis-results" class="glass-box analysis-container gradient-top-border">
                 <div class="analysis-placeholder">
                     <p class="waiting-text">...WAITING FOR DESIGN</p>
                     <div class="mockup-skeleton">
@@ -93,7 +94,7 @@
             </div>
 
             <!-- Right Column: Design Workspace -->
-            <div id="design-workspace" class="glass-box workspace-container">
+            <div id="design-workspace" class="glass-box workspace-container dashed-border-box">
                 <div class="upload-placeholder">
                     <div class="upload-icon-wrapper">
                         <i class="fas fa-bolt"></i>
