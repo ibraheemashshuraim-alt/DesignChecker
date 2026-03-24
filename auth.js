@@ -9,6 +9,7 @@ const logoutBtn = document.getElementById('logout-btn');
 const profileBtn = document.getElementById('profile-btn');
 const dropdown = document.getElementById('profile-dropdown');
 const userAvatar = document.getElementById('user-avatar');
+const displayName = document.getElementById('display-name');
 const displayEmail = document.getElementById('display-email');
 const displayRole = document.getElementById('display-role');
 const displayCredits = document.getElementById('display-credits');
@@ -29,7 +30,7 @@ onAuthStateChanged(auth, async (user) => {
 
         if (!userSnap.exists()) {
             await setDoc(userRef, {
-                name: user.displayName,
+                name: user.displayName || 'Unknown User',
                 email: user.email,
                 photo: user.photoURL,
                 credits: 10,
@@ -43,13 +44,14 @@ onAuthStateChanged(auth, async (user) => {
         onSnapshot(userRef, (snapshot) => {
             const data = snapshot.data();
             if (data) {
-                displayEmail.textContent = data.email;
+                displayName.textContent = data.name || user.displayName || 'User';
+                displayEmail.textContent = data.email || user.email;
                 displayRole.textContent = data.role === 'admin' ? 'Administrator' : 'Free User';
                 displayCredits.textContent = data.credits || 0;
             }
         });
 
-        // Load API Key
+        // Load API Key specifically for authenticated user UI session
         geminiInput.value = localStorage.getItem('gemini_api_key') || '';
 
     } else {
