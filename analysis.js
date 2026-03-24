@@ -105,9 +105,11 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingState.style.display = 'flex';
         statusText.innerText = "ANALYSING...";
 
-        // 3. Direct Fetch Call using the requested URL
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-        
+        // 3. Direct Fetch Call using the Stable v1 URL
+        const models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+        let success = false;
+        let lastError = null;
+
         const promptText = `You are an expert UI/UX designer and Accessibility specialist.
 Analyze the provided design image thoroughly. Give a score out of 10.
 MUST include:
@@ -125,30 +127,45 @@ MUST include:
         };
 
         try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
+            for (const model of models) {
+                try {
+                    const endpoint = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || `API Error: ${response.status}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
+                        
+                        // Format Markdown -> HTML
+                        let formattedHtml = rawText
+                            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                            .replace(/^## (.*$)/gim, '<h3>$1</h3>')
+                            .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
+                            .replace(/^\* (.*$)/gim, '<li>$1</li>')
+                            .replace(/\n/gim, '<br>');
+
+                        resultsContent.innerHTML = formattedHtml;
+                        success = true;
+                        break; 
+                    } else {
+                        const errorData = await response.json();
+                        lastError = new Error(errorData.error?.message || `API Error: ${response.status}`);
+                    }
+                } catch (err) {
+                    lastError = err;
+                    console.error(`Attempt with ${model} failed:`, err);
+                }
             }
 
-            const data = await response.json();
-            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
-            
-            // Format Markdown -> HTML
-            let formattedHtml = rawText
-                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                .replace(/^## (.*$)/gim, '<h3>$1</h3>')
-                .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
-                .replace(/^\* (.*$)/gim, '<li>$1</li>')
-                .replace(/\n/gim, '<br>');
+            if (!success) {
+                throw lastError || new Error("Failed to connect to Gemini API.");
+            }
 
-            resultsContent.innerHTML = formattedHtml;
-            
             // Deduct Credit
             if (window.userAppData.uid) {
                 const userRef = doc(db, "users", window.userAppData.uid);
@@ -161,7 +178,7 @@ MUST include:
             statusText.innerText = "DONE";
 
         } catch (error) {
-            console.error('Fetch Error:', error);
+            console.error('Analysis failed:', error);
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
             resultsContent.innerHTML = `
@@ -169,7 +186,7 @@ MUST include:
                     <i class="fas fa-bolt" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
                     <h3 style="color:var(--danger); margin:0;">Analysis Failed</h3>
                     <p style="color:#cbd5e1; font-size:13px;">${error.message}</p>
-                    <p style="color:#94a3b8; font-size:12px;">Ensure your API key is correct and valid for Gemini 1.5 Flash.</p>
+                    <p style="color:#94a3b8; font-size:12px;">Ensure your API key is correct and valid for Gemini 1.5.</p>
                 </div>
             `;
             statusText.innerText = "ERROR";

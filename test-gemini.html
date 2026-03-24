@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini API Direct Test</title>
+    <title>Gemini API Direct Test (v1 Stable)</title>
     <style>
         body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; background: #0f172a; color: #f8fafc; }
         .card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; }
@@ -18,12 +18,12 @@
 </head>
 <body>
     <div class="card">
-        <h2>Gemini API Standalone Test</h2>
-        <p>Select an image to test the direct connection to Google Gemini 1.5 Flash.</p>
+        <h2>Gemini API Standalone Test (v1 Stable)</h2>
+        <p>Testing direct connection using the STABLE v1 endpoint.</p>
         
         <input type="file" id="imageInput" accept="image/*">
         <br>
-        <button id="testBtn">RUN TEST ANALYSIS</button>
+        <button id="testBtn">RUN STABLE TEST</button>
 
         <div id="status">Ready.</div>
         <h3>API Response:</h3>
@@ -36,58 +36,60 @@
         const status = document.getElementById('status');
         const output = document.getElementById('output');
 
-        // Embedded API Key for Direct Testing
         const apiKey = "AIzaSyAGtDXyTMf-L6R7_bisYAu8AJlILCnLMRg";
 
         testBtn.addEventListener('click', async () => {
             const file = imageInput.files[0];
-            if (!file) return alert("Please select an image first!");
+            if (!file) return alert("Please select an image!");
 
-            status.innerHTML = '<span style="color:#00f0ff">Processing... Calling Google API directly.</span>';
-            output.innerText = "Waiting for response...";
+            status.innerHTML = '<span style="color:#00f0ff">Calling Stable v1 Endpoint...</span>';
+            output.innerText = "Waiting...";
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
-                try {
-                    const base64Data = reader.result.split(',')[1];
-                    const mimeType = file.type;
+                const base64Data = reader.result.split(',')[1];
+                const mimeType = file.type;
 
-                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+                // TRY Flash first, then Pro as fallback
+                const models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
+                let success = false;
 
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{
-                                parts: [
-                                    { text: "Analyze this image briefly and point out 3 layout improvements." },
-                                    { 
-                                        inline_data: { 
-                                            mime_type: mimeType, 
-                                            data: base64Data 
-                                        } 
-                                    }
-                                ]
-                            }]
-                        })
-                    });
+                for (const model of models) {
+                    try {
+                        const endpoint = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+                        
+                        const response = await fetch(endpoint, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                contents: [{
+                                    parts: [
+                                        { text: "Analyze this image briefly." },
+                                        { inline_data: { mime_type: mimeType, data: base64Data } }
+                                    ]
+                                }]
+                            })
+                        });
 
-                    const data = await response.json();
+                        const data = await response.json();
 
-                    if (response.ok) {
-                        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No text generated.";
-                        output.innerText = resultText;
-                        status.innerHTML = '<span style="color:#10b981">SUCCESS! API is working perfectly.</span>';
-                    } else {
-                        output.innerText = JSON.stringify(data, null, 2);
-                        status.innerHTML = '<span class="error">API ERROR: Check response below.</span>';
+                        if (response.ok) {
+                            output.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No text.";
+                            status.innerHTML = `<span style="color:#10b981">SUCCESS with ${model}!</span>`;
+                            success = true;
+                            break;
+                        } else {
+                            console.warn(`${model} failed:`, data);
+                        }
+                    } catch (err) {
+                        console.error(err);
                     }
+                }
 
-                } catch (err) {
-                    console.error(err);
-                    output.innerText = err.message;
-                    status.innerHTML = '<span class="error">FETCH FAILED: Check console or network.</span>';
+                if (!success) {
+                    status.innerHTML = '<span class="error">TEST FAILED on both models. Check console.</span>';
+                    output.innerText = "Could not get a successful response from Gemini v1.";
                 }
             };
         });
