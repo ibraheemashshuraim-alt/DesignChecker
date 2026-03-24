@@ -23,4 +23,16 @@ const storage = getStorage(app);
 const googleProvider = new GoogleAuthProvider();
 const analytics = getAnalytics(app);
 
+// Save login state robustly in localStorage (Requested for session persistence)
+auth.onAuthStateChanged((user) => {
+    if (user) {
+        localStorage.setItem('uid', user.uid);
+        localStorage.setItem('email', user.email);
+        console.log("[CONFIG] Session persisted to localStorage.");
+    } else {
+        localStorage.removeItem('uid');
+        localStorage.removeItem('email');
+    }
+});
+
 export { app, auth, db, storage, googleProvider, analytics, firebaseConfig };

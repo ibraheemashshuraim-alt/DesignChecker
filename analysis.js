@@ -1,6 +1,7 @@
 // analysis.js - Gemini API and Design Analysis logic
 import { firebaseConfig, db } from './config.js';
 import { doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
 document.addEventListener('DOMContentLoaded', () => {
     const uploadBtn = document.getElementById('trigger-upload-btn');
@@ -23,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentImageBase64 = null;
     let currentMimeType = null;
 
-    // Load saved API key (Prioritize 'user_gemini_key')
+    // Load saved API key
     const savedApiKey = localStorage.getItem('user_gemini_key') || localStorage.getItem('gemini-api-key');
     if(savedApiKey) {
         apiSettingInput.value = savedApiKey;
@@ -32,8 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     saveKeyBtn.addEventListener('click', () => {
         if(apiSettingInput.value.trim()) {
             localStorage.setItem('user_gemini_key', apiSettingInput.value.trim());
-            
-            // Beautiful UI Feedback instead of alert
             const originalText = saveKeyBtn.innerHTML;
             saveKeyBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
             saveKeyBtn.style.background = 'var(--accent)';
@@ -45,9 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const getApiKey = () => {
-        // Enforce priority: Saved Key -> Firebase API Key
-        // using window.userAppData for robust global state tracking
-        return window.userAppData?.geminiKey || firebaseConfig.apiKey; 
+        return window.userAppData?.geminiKey || localStorage.getItem('user_gemini_key') || firebaseConfig.apiKey;
     };
 
     uploadBtn.addEventListener('click', () => fileInput.click());
@@ -72,121 +69,80 @@ document.addEventListener('DOMContentLoaded', () => {
 
     analyseBtn.addEventListener('click', async () => {
         const apiKey = getApiKey();
-        
-        // 1. "Wait" Logic: Check for API Key
+        const uid = localStorage.getItem('uid') || window.userAppData?.uid;
+        const credits = window.userAppData?.credits || 0; // Credits are usually synced in window state
+
+        // 1. Connection & Config Check
         if (!apiKey || apiKey === 'YOUR_DEFAULT_KEY') {
-            resultsContent.innerHTML = `<div style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); padding:20px; border-radius:12px; text-align:center;">
-                <i class="fas fa-key" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
-                <h3 style="color:var(--danger); margin:0;">API Key Missing</h3>
-                <p style="color:#cbd5e1; font-size:14px;">Please set your <b>Gemini API Key</b> in the Settings or Profiles menu first.</p>
-            </div>`;
-            statusText.innerText = "CONFIG ERROR";
+            alert("Please set your Gemini API Key first!");
             return;
         }
 
-        // 2. Firebase Dependency: Check User & Credits
-        if (!window.userAppData || !window.userAppData.user) {
-            alert("Authentication is loading... Please wait or re-login.");
+        // 2. Login Check
+        if (!uid) {
+            alert("Error: Please login with Google first!");
             return;
         }
 
-        if (window.userAppData.credits <= 0) {
-            alert("Insufficient Credits! Please top-up to continue analysis.");
+        // 3. Credits Check
+        if (credits <= 0) {
+            alert("No Credits! Please buy more credits to analyze designs.");
             return;
         }
 
         if (!currentImageBase64) return;
 
-        // UI Reset
+        // UI Prep
         blurryAura.style.display = 'none';
         centerPrompt.style.display = 'none';
         resultsContent.style.display = 'none';
         printBtn.style.display = 'none';
         loadingState.style.display = 'flex';
-        statusText.innerText = "ANALYSING...";
-
-        // 3. Direct Fetch Call using the v1beta URL
-        const models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
-        let success = false;
-        let lastError = null;
-
-        const requestBody = {
-            contents: [{
-                parts: [
-                    { text: "Analyze this UI design image thoroughly and suggest improvements." },
-                    { 
-                        inline_data: { 
-                            mime_type: currentMimeType, 
-                            data: currentImageBase64 
-                        } 
-                    }
-                ]
-            }]
-        };
+        statusText.innerText = "SDK ANALYSING...";
 
         try {
-            for (const model of models) {
-                try {
-                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                    console.log(`[DEBUG] Trying model: ${model}`);
-                    
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody)
-                    });
+            // INITIALIZE SDK (Google Generative AI)
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-                    console.log(`[DEBUG] ${model} Response Status:`, response.status);
-                    const data = await response.json();
-                    console.log(`[DEBUG] ${model} Response Data:`, data);
+            const prompt = "Analyze this UI/UX design image thoroughly. Suggest improvements for visual hierarchy, typography, and accessibility. Score it out of 10.";
 
-                    if (response.ok) {
-                        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No text returned.";
-                        
-                        // Basic formatting
-                        let formattedHtml = rawText
-                            .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                            .replace(/^## (.*$)/gim, '<h3>$1</h3>')
-                            .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
-                            .replace(/\n/gim, '<br>');
+            const result = await model.generateContent([
+                prompt,
+                { inlineData: { data: currentImageBase64, mimeType: currentMimeType } }
+            ]);
 
-                        resultsContent.innerHTML = formattedHtml;
-                        success = true;
-                        break; 
-                    } else {
-                        lastError = new Error(data.error?.message || `Error ${response.status}`);
-                    }
-                } catch (err) {
-                    lastError = err;
-                    console.error(`[DEBUG] Fetch error for ${model}:`, err);
-                }
-            }
+            const responseText = await result.response.text();
+            console.log("[DEBUG] SDK Response:", responseText);
 
-            if (!success) {
-                throw lastError || new Error("All Gemini models failed to respond.");
-            }
+            // Formatting Markdown to HTML
+            let formattedHtml = responseText
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h3>$1</h3>')
+                .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\n/gim, '<br>');
 
-            // Deduct Credit (Fixed scope)
-            if (window.userAppData.uid) {
-                const userRef = doc(db, "users", window.userAppData.uid);
-                await updateDoc(userRef, { credits: increment(-1) });
-            }
-            
+            resultsContent.innerHTML = formattedHtml;
+
+            // Deduct 1 Credit
+            const userRef = doc(db, "users", uid);
+            await updateDoc(userRef, { credits: increment(-1) });
+
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
             printBtn.style.display = 'inline-flex';
-            statusText.innerText = "DONE";
+            statusText.innerText = "SUCCESS";
 
         } catch (error) {
-            console.error('Final Analysis Error:', error);
+            console.error("SDK Analysis Error:", error);
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
             resultsContent.innerHTML = `
                 <div style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); padding:20px; border-radius:12px; text-align:center;">
-                    <i class="fas fa-bolt" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
-                    <h3 style="color:var(--danger); margin:0;">Analysis Failed</h3>
+                    <i class="fas fa-exclamation-triangle" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
+                    <h3 style="color:var(--danger); margin:0;">SDK Error</h3>
                     <p style="color:#cbd5e1; font-size:13px;">${error.message}</p>
-                    <p style="color:#94a3b8; font-size:12px;">Check F12 console for detailed error object from Google.</p>
+                    <p style="color:#94a3b8; font-size:12px;">Make sure your API Key has access to gemini-1.5-flash.</p>
                 </div>
             `;
             statusText.innerText = "ERROR";
