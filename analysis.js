@@ -21,22 +21,30 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentImageBase64 = null;
     let currentMimeType = null;
 
-    // Load saved API key
-    if(localStorage.getItem('gemini-api-key')) {
-        apiSettingInput.value = localStorage.getItem('gemini-api-key');
+    // Load saved API key (Prioritize 'user_gemini_key')
+    const savedApiKey = localStorage.getItem('user_gemini_key') || localStorage.getItem('gemini-api-key');
+    if(savedApiKey) {
+        apiSettingInput.value = savedApiKey;
     }
 
     saveKeyBtn.addEventListener('click', () => {
         if(apiSettingInput.value.trim()) {
-            localStorage.setItem('gemini-api-key', apiSettingInput.value.trim());
-            alert('API Key saved successfully!');
+            localStorage.setItem('user_gemini_key', apiSettingInput.value.trim());
+            
+            // Beautiful UI Feedback instead of alert
+            const originalText = saveKeyBtn.innerHTML;
+            saveKeyBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
+            saveKeyBtn.style.background = 'var(--accent)';
+            setTimeout(() => {
+                saveKeyBtn.innerHTML = originalText;
+                saveKeyBtn.style.background = '';
+            }, 2000);
         }
     });
 
     const getApiKey = () => {
-        const savedKey = localStorage.getItem('gemini-api-key') || apiSettingInput.value.trim();
-        // Fallback default API key (placeholder for demonstration, strictly require actual key for production)
-        return savedKey || 'YOUR_GEMINI_API_KEY_HERE'; 
+        // Explicit logic enforcing priority as requested
+        return localStorage.getItem('user_gemini_key') || localStorage.getItem('gemini-api-key') || apiSettingInput.value.trim() || 'YOUR_DEFAULT_KEY'; 
     };
 
     uploadBtn.addEventListener('click', () => fileInput.click());
@@ -71,22 +79,20 @@ document.addEventListener('DOMContentLoaded', () => {
         statusText.innerText = "ANALYSING DESIGN...";
         
         const apiKey = getApiKey();
-        // Strictly use gemini-1.5-flash and v1beta version
-        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         
         const promptText = `You are an expert UI/UX designer and Accessibility specialist.
 Analyze the provided design image thoroughly.
-Provide the response in clean Markdown format with headings. MUST include:
+Provide the response in clean Markdown format with headings. MUST explicitly include:
 ### 1. Overall Design Score
-Give a score out of 10 for the overall design.
+Give a score out of 10 for the overall design layout and feel.
 ### 2. Visual Hierarchy & Layout
 How well the elements are arranged and balanced.
 ### 3. Typography
-Readability, font choices, and hierarchy.
-### 4. Accessibility Audit
-Check if font sizes and elements are clear and accessible for everyone. 
-### 5. Color Contrast Ratio
-Detailed analysis of color balance and specific contrast ratios for text vs background.`;
+Readability, font choices, and textual hierarchy.
+### 4. Accessibility Check
+Analyse the font size and clarity of elements for all users, including those with visual impairments. 
+### 5. Color Contrast
+Detailed analysis of the color palette, visual balance, and contrast ratios for text vs background.`;
 
         const requestBody = {
             contents: [{
@@ -98,22 +104,43 @@ Detailed analysis of color balance and specific contrast ratios for text vs back
             generationConfig: { temperature: 0.4 }
         };
 
-        try {
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
+        const modelsToTry = [
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-8b'
+        ];
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error?.message || `API Error ${response.status}`);
+        let response = null;
+        let success = false;
+        let lastError = null;
+
+        try {
+            // Fallback Logic: Try 1.5-flash, then 1.5-flash-8b
+            for (const model of modelsToTry) {
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                
+                response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (response.ok) {
+                    success = true;
+                    break; // Request succeeded, exit fallback loop
+                } else {
+                    const errorData = await response.json();
+                    lastError = new Error(errorData.error?.message || `API Error ${response.status} with model ${model}`);
+                }
+            }
+
+            if (!success) {
+                throw lastError || new Error("All model fallback attempts failed.");
             }
 
             const data = await response.json();
             const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
             
-            // Format markdown to HTML
+            // Format markdown to HTML properly
             let formattedHtml = rawText
                 .replace(/^### (.*$)/gim, '<h3>$1</h3>')
                 .replace(/^## (.*$)/gim, '<h3>$1</h3>')
@@ -134,8 +161,17 @@ Detailed analysis of color balance and specific contrast ratios for text vs back
             console.error('Analysis failed:', error);
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
-            resultsContent.innerHTML = `<h3 style="color:var(--danger)">Analysis Error</h3><p>${error.message}</p><p>Please check your API key from API Settings.</p>`;
-            statusText.innerText = "ANALYSIS FAILED";
+            
+            // Beautiful on-screen Error Message instead of alert
+            resultsContent.innerHTML = `
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 25px; border-radius: 12px; text-align: center; margin-top: 20px;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 32px; color: var(--danger); margin-bottom: 15px;"></i>
+                    <h3 style="color: var(--danger); margin: 0 0 10px 0; border: none; font-size: 20px;">Analysis Failed</h3>
+                    <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">${error.message}</p>
+                    <p style="color: #94a3b8; font-size: 13px;">Please verify your API Key in Settings or check your internet connection.</p>
+                </div>
+            `;
+            statusText.innerText = "ANALYSIS ERROR";
         }
     });
 
