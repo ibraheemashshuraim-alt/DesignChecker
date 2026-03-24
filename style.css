@@ -379,16 +379,16 @@ main {
 
 .glass-box {
     border-radius: 20px;
-    background: rgba(255, 255, 255, 0.03); /* Premium Glassmorphism */
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(15, 23, 35, 0.4); /* Deep dark background matching theme */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     padding: 30px;
     display: flex;
     flex-direction: column;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
     position: relative;
-    overflow: hidden; /* Important for inner gradient borders */
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    border: none; /* Removed inner border to match image perfectly */
 }
 
 /* Left Column Styling */
@@ -439,14 +439,17 @@ main {
     flex-direction: column;
     align-items: center;
     gap: 20px;
-    opacity: 0.15;
+    opacity: 0.6;
+    filter: blur(8px);
+    pointer-events: none;
 }
 
 .skeleton-score {
     width: 120px;
     height: 60px;
-    background: var(--primary);
+    background: rgba(0, 240, 255, 0.6);
     border-radius: 8px;
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.4);
 }
 
 .skeleton-grid {
@@ -459,20 +462,23 @@ main {
     flex: 1;
     height: 60px;
     border-radius: 8px;
-    background: #ffffff;
+    background: rgba(181, 53, 246, 0.4);
+    box-shadow: 0 0 30px rgba(181, 53, 246, 0.2);
 }
 
 .skeleton-text-block {
     width: 90%;
     height: 100px;
     border-radius: 8px;
-    background: #ffffff;
+    background: rgba(181, 53, 246, 0.3);
+    box-shadow: 0 0 30px rgba(181, 53, 246, 0.2);
 }
 
 
 /* Right Column Styling */
 .dashed-border-box {
     border: 1px dashed rgba(255, 255, 255, 0.25); /* Stronger dotted/dashed border */
+    background: transparent;
 }
 
 .workspace-container {
