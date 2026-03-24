@@ -2,94 +2,91 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gemini API Direct Test (v1 Stable)</title>
+    <title>Gemini Debugging Test (v1beta)</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; background: #0f172a; color: #f8fafc; }
-        .card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; }
-        h2 { color: #00f0ff; margin-top: 0; }
-        input, button { margin: 10px 0; padding: 12px; border-radius: 6px; border: none; }
-        button { background: #00f0ff; color: #0f172a; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        button:hover { opacity: 0.8; transform: translateY(-2px); }
-        #status { font-weight: bold; margin: 15px 0; }
-        pre { background: #020617; color: #10b981; padding: 20px; border-radius: 8px; overflow-x: auto; border: 1px solid #1e293b; min-height: 100px; white-space: pre-wrap; }
-        .error { color: #ef4444; }
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #0f172a; color: white; }
+        .card { background: #1e293b; padding: 20px; border-radius: 10px; border: 1px solid #334155; }
+        pre { background: #020617; color: #10b981; padding: 15px; border-radius: 5px; overflow: auto; min-height: 150px; white-space: pre-wrap; }
+        button { background: #00f0ff; color: #0f172a; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        #status { margin: 10px 0; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Gemini API Standalone Test (v1 Stable)</h2>
-        <p>Testing direct connection using the STABLE v1 endpoint.</p>
+        <h2>Gemini Full Debugging Test</h2>
+        <p>This test logs the ENTIRE response object to the <b>Console (F12)</b>.</p>
         
         <input type="file" id="imageInput" accept="image/*">
-        <br>
-        <button id="testBtn">RUN STABLE TEST</button>
+        <br><br>
+        <button id="testBtn">RUN DEBUG TEST</button>
 
-        <div id="status">Ready.</div>
-        <h3>API Response:</h3>
-        <pre id="output">Results will appear here...</pre>
+        <div id="status">Status: Ready.</div>
+        <h3>Console Output Preview:</h3>
+        <pre id="output">Check F12 for full detailed response object...</pre>
     </div>
 
     <script>
-        const testBtn = document.getElementById('testBtn');
-        const imageInput = document.getElementById('imageInput');
-        const status = document.getElementById('status');
-        const output = document.getElementById('output');
-
         const apiKey = "AIzaSyAGtDXyTMf-L6R7_bisYAu8AJlILCnLMRg";
 
-        testBtn.addEventListener('click', async () => {
-            const file = imageInput.files[0];
-            if (!file) return alert("Please select an image!");
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            const file = document.getElementById('imageInput').files[0];
+            if (!file) return alert("Select an image first.");
 
-            status.innerHTML = '<span style="color:#00f0ff">Calling Stable v1 Endpoint...</span>';
-            output.innerText = "Waiting...";
+            const status = document.getElementById('status');
+            const output = document.getElementById('output');
+
+            status.innerText = "Status: Calling Gemini API...";
+            output.innerText = "Check Console (F12) for real-time logs.";
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = async () => {
+                // Ensure PURE Base64 (remove prefix)
                 const base64Data = reader.result.split(',')[1];
                 const mimeType = file.type;
 
-                // TRY Flash first, then Pro as fallback
-                const models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
-                let success = false;
+                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-                for (const model of models) {
-                    try {
-                        const endpoint = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
-                        
-                        const response = await fetch(endpoint, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                contents: [{
-                                    parts: [
-                                        { text: "Analyze this image briefly." },
-                                        { inline_data: { mime_type: mimeType, data: base64Data } }
-                                    ]
-                                }]
-                            })
-                        });
+                const payload = {
+                    contents: [{
+                        parts: [
+                            { text: "Briefly analyze this design." },
+                            { 
+                                inline_data: { 
+                                    mime_type: mimeType, 
+                                    data: base64Data 
+                                } 
+                            }
+                        ]
+                    }]
+                };
 
-                        const data = await response.json();
+                try {
+                    console.log("[DEBUG] Sending Payload:", payload);
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
 
-                        if (response.ok) {
-                            output.innerText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No text.";
-                            status.innerHTML = `<span style="color:#10b981">SUCCESS with ${model}!</span>`;
-                            success = true;
-                            break;
-                        } else {
-                            console.warn(`${model} failed:`, data);
-                        }
-                    } catch (err) {
-                        console.error(err);
+                    console.log("[DEBUG] Raw Response Object:", response);
+                    
+                    const data = await response.json();
+                    console.log("[DEBUG] JSON Response Data:", data);
+
+                    if (response.ok) {
+                        status.innerText = "Status: Success!";
+                        output.innerText = data.candidates[0].content.parts[0].text;
+                    } else {
+                        status.innerText = `Status: API Error ${response.status}`;
+                        output.innerText = JSON.stringify(data, null, 2);
                     }
-                }
 
-                if (!success) {
-                    status.innerHTML = '<span class="error">TEST FAILED on both models. Check console.</span>';
-                    output.innerText = "Could not get a successful response from Gemini v1.";
+                } catch (err) {
+                    console.error("[DEBUG] Fetch Error:", err);
+                    status.innerText = "Status: Fetch Failed";
+                    output.innerText = err.message;
                 }
             };
         });

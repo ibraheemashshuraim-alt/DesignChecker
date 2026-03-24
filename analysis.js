@@ -105,23 +105,21 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingState.style.display = 'flex';
         statusText.innerText = "ANALYSING...";
 
-        // 3. Direct Fetch Call using the Stable v1 URL
+        // 3. Direct Fetch Call using the v1beta URL
         const models = ['gemini-1.5-flash', 'gemini-1.5-pro'];
         let success = false;
         let lastError = null;
 
-        const promptText = `You are an expert UI/UX designer and Accessibility specialist.
-Analyze the provided design image thoroughly. Give a score out of 10.
-MUST include:
-### 1. Overall Score
-### 2. Accessibility Check (Font size & Clarity)
-### 3. Color Contrast (Palette & Visual Balance)`;
-
         const requestBody = {
             contents: [{
                 parts: [
-                    { text: promptText },
-                    { inline_data: { mime_type: currentMimeType, data: currentImageBase64 } }
+                    { text: "Analyze this UI design image thoroughly and suggest improvements." },
+                    { 
+                        inline_data: { 
+                            mime_type: currentMimeType, 
+                            data: currentImageBase64 
+                        } 
+                    }
                 ]
             }]
         };
@@ -129,7 +127,8 @@ MUST include:
         try {
             for (const model of models) {
                 try {
-                    const endpoint = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+                    console.log(`[DEBUG] Trying model: ${model}`);
                     
                     const response = await fetch(endpoint, {
                         method: 'POST',
@@ -137,36 +136,37 @@ MUST include:
                         body: JSON.stringify(requestBody)
                     });
 
+                    console.log(`[DEBUG] ${model} Response Status:`, response.status);
+                    const data = await response.json();
+                    console.log(`[DEBUG] ${model} Response Data:`, data);
+
                     if (response.ok) {
-                        const data = await response.json();
-                        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
+                        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No text returned.";
                         
-                        // Format Markdown -> HTML
+                        // Basic formatting
                         let formattedHtml = rawText
                             .replace(/^### (.*$)/gim, '<h3>$1</h3>')
                             .replace(/^## (.*$)/gim, '<h3>$1</h3>')
                             .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
-                            .replace(/^\* (.*$)/gim, '<li>$1</li>')
                             .replace(/\n/gim, '<br>');
 
                         resultsContent.innerHTML = formattedHtml;
                         success = true;
                         break; 
                     } else {
-                        const errorData = await response.json();
-                        lastError = new Error(errorData.error?.message || `API Error: ${response.status}`);
+                        lastError = new Error(data.error?.message || `Error ${response.status}`);
                     }
                 } catch (err) {
                     lastError = err;
-                    console.error(`Attempt with ${model} failed:`, err);
+                    console.error(`[DEBUG] Fetch error for ${model}:`, err);
                 }
             }
 
             if (!success) {
-                throw lastError || new Error("Failed to connect to Gemini API.");
+                throw lastError || new Error("All Gemini models failed to respond.");
             }
 
-            // Deduct Credit
+            // Deduct Credit (Fixed scope)
             if (window.userAppData.uid) {
                 const userRef = doc(db, "users", window.userAppData.uid);
                 await updateDoc(userRef, { credits: increment(-1) });
@@ -178,7 +178,7 @@ MUST include:
             statusText.innerText = "DONE";
 
         } catch (error) {
-            console.error('Analysis failed:', error);
+            console.error('Final Analysis Error:', error);
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
             resultsContent.innerHTML = `
@@ -186,7 +186,7 @@ MUST include:
                     <i class="fas fa-bolt" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
                     <h3 style="color:var(--danger); margin:0;">Analysis Failed</h3>
                     <p style="color:#cbd5e1; font-size:13px;">${error.message}</p>
-                    <p style="color:#94a3b8; font-size:12px;">Ensure your API key is correct and valid for Gemini 1.5.</p>
+                    <p style="color:#94a3b8; font-size:12px;">Check F12 console for detailed error object from Google.</p>
                 </div>
             `;
             statusText.innerText = "ERROR";
