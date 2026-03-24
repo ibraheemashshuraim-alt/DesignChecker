@@ -106,7 +106,11 @@ Detailed analysis of the color palette, visual balance, and contrast ratios for 
 
         const modelsToTry = [
             'gemini-1.5-flash',
-            'gemini-1.5-flash-8b'
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-flash-8b',
+            'gemini-1.5-pro',
+            'gemini-1.5-pro-latest',
+            'gemini-pro-vision'
         ];
 
         let response = null;
