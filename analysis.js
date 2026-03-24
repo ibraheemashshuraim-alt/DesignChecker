@@ -71,42 +71,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     analyseBtn.addEventListener('click', async () => {
-        if (!currentImageBase64) return;
+        const apiKey = getApiKey();
+        
+        // 1. "Wait" Logic: Check for API Key
+        if (!apiKey || apiKey === 'YOUR_DEFAULT_KEY') {
+            resultsContent.innerHTML = `<div style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); padding:20px; border-radius:12px; text-align:center;">
+                <i class="fas fa-key" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
+                <h3 style="color:var(--danger); margin:0;">API Key Missing</h3>
+                <p style="color:#cbd5e1; font-size:14px;">Please set your <b>Gemini API Key</b> in the Settings or Profiles menu first.</p>
+            </div>`;
+            statusText.innerText = "CONFIG ERROR";
+            return;
+        }
 
-        // Check Global Credits State
+        // 2. Firebase Dependency: Check User & Credits
         if (!window.userAppData || !window.userAppData.user) {
-            alert("Please login first to use the analyzer.");
+            alert("Authentication is loading... Please wait or re-login.");
             return;
         }
 
         if (window.userAppData.credits <= 0) {
-            alert("You don't have enough credits! Please buy more credits to continue.");
+            alert("Insufficient Credits! Please top-up to continue analysis.");
             return;
         }
-        
+
+        if (!currentImageBase64) return;
+
+        // UI Reset
         blurryAura.style.display = 'none';
         centerPrompt.style.display = 'none';
         resultsContent.style.display = 'none';
         printBtn.style.display = 'none';
-        
         loadingState.style.display = 'flex';
-        statusText.innerText = "ANALYSING DESIGN...";
-        
-        const apiKey = getApiKey();
+        statusText.innerText = "ANALYSING...";
+
+        // 3. Direct Fetch Call using the requested URL
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         
         const promptText = `You are an expert UI/UX designer and Accessibility specialist.
-Analyze the provided design image thoroughly.
-Provide the response in clean Markdown format with headings. MUST explicitly include:
-### 1. Overall Design Score
-Give a score out of 10 for the overall design layout and feel.
-### 2. Visual Hierarchy & Layout
-How well the elements are arranged and balanced.
-### 3. Typography
-Readability, font choices, and textual hierarchy.
-### 4. Accessibility Check
-Analyse the font size and clarity of elements for all users, including those with visual impairments. 
-### 5. Color Contrast
-Detailed analysis of the color palette, visual balance, and contrast ratios for text vs background.`;
+Analyze the provided design image thoroughly. Give a score out of 10.
+MUST include:
+### 1. Overall Score
+### 2. Accessibility Check (Font size & Clarity)
+### 3. Color Contrast (Palette & Visual Balance)`;
 
         const requestBody = {
             contents: [{
@@ -114,64 +121,36 @@ Detailed analysis of the color palette, visual balance, and contrast ratios for 
                     { text: promptText },
                     { inlineData: { mimeType: currentMimeType, data: currentImageBase64 } }
                 ]
-            }],
-            generationConfig: { temperature: 0.4 }
+            }]
         };
 
-        const modelsToTry = [
-            'gemini-1.5-flash',
-            'gemini-1.5-flash-latest',
-            'gemini-1.5-flash-8b',
-            'gemini-1.5-pro',
-            'gemini-1.5-pro-latest',
-            'gemini-pro-vision'
-        ];
-
-        let response = null;
-        let success = false;
-        let lastError = null;
-
         try {
-            // Fallback Logic: Try 1.5-flash, then 1.5-flash-8b
-            for (const model of modelsToTry) {
-                const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-                
-                response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestBody)
-                });
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
 
-                if (response.ok) {
-                    success = true;
-                    break; // Request succeeded, exit fallback loop
-                } else {
-                    const errorData = await response.json();
-                    lastError = new Error(errorData.error?.message || `API Error ${response.status} with model ${model}`);
-                }
-            }
-
-            if (!success) {
-                throw lastError || new Error("All model fallback attempts failed.");
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || `API Error: ${response.status}`);
             }
 
             const data = await response.json();
-            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+            const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
             
-            // Format markdown to HTML properly
+            // Format Markdown -> HTML
             let formattedHtml = rawText
                 .replace(/^### (.*$)/gim, '<h3>$1</h3>')
                 .replace(/^## (.*$)/gim, '<h3>$1</h3>')
-                .replace(/^\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
                 .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
                 .replace(/^\* (.*$)/gim, '<li>$1</li>')
-                .replace(/\n\n/gim, '<br><br>')
                 .replace(/\n/gim, '<br>');
 
             resultsContent.innerHTML = formattedHtml;
             
-            // Deduct 1 Credit directly from Firebase
-            if (window.userAppData && window.userAppData.uid) {
+            // Deduct Credit
+            if (window.userAppData.uid) {
                 const userRef = doc(db, "users", window.userAppData.uid);
                 await updateDoc(userRef, { credits: increment(-1) });
             }
@@ -179,23 +158,21 @@ Detailed analysis of the color palette, visual balance, and contrast ratios for 
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
             printBtn.style.display = 'inline-flex';
-            statusText.innerText = "ANALYSIS COMPLETE";
+            statusText.innerText = "DONE";
 
         } catch (error) {
-            console.error('Analysis failed:', error);
+            console.error('Fetch Error:', error);
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
-            
-            // Beautiful on-screen Error Message instead of alert
             resultsContent.innerHTML = `
-                <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 25px; border-radius: 12px; text-align: center; margin-top: 20px;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 32px; color: var(--danger); margin-bottom: 15px;"></i>
-                    <h3 style="color: var(--danger); margin: 0 0 10px 0; border: none; font-size: 20px;">Analysis Failed</h3>
-                    <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 15px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">${error.message}</p>
-                    <p style="color: #94a3b8; font-size: 13px;">Please verify your API Key in Settings or check your internet connection.</p>
+                <div style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); padding:20px; border-radius:12px; text-align:center;">
+                    <i class="fas fa-bolt" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
+                    <h3 style="color:var(--danger); margin:0;">Analysis Failed</h3>
+                    <p style="color:#cbd5e1; font-size:13px;">${error.message}</p>
+                    <p style="color:#94a3b8; font-size:12px;">Ensure your API key is correct and valid for Gemini 1.5 Flash.</p>
                 </div>
             `;
-            statusText.innerText = "ANALYSIS ERROR";
+            statusText.innerText = "ERROR";
         }
     });
 
