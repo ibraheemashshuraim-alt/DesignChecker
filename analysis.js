@@ -32,11 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     saveKeyBtn.addEventListener('click', () => {
         if(apiSettingInput.value.trim()) {
             localStorage.setItem('user_gemini_key', apiSettingInput.value.trim());
-            const originalText = saveKeyBtn.innerHTML;
-            saveKeyBtn.innerHTML = '<i class="fas fa-check"></i> Saved';
-            setTimeout(() => {
-                saveKeyBtn.innerHTML = originalText;
-            }, 2000);
+            saveKeyBtn.innerHTML = '<i class="fas fa-check"></i>';
+            saveKeyBtn.style.color = 'var(--accent)';
         }
     });
 
