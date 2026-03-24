@@ -811,3 +811,77 @@ main {
 
 .status-active { background: rgba(16, 185, 129, 0.1); color: var(--accent); }
 .status-blocked { background: rgba(239, 68, 68, 0.1); color: var(--danger); }
+
+/* --- Loading Animation --- */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    z-index: 20;
+}
+
+.hex-loader {
+    width: 60px;
+    height: 60px;
+    position: relative;
+    animation: hexSpin 3s linear infinite;
+    margin-bottom: 20px;
+}
+
+.hex {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    background: var(--primary);
+    border-radius: 50%;
+    animation: hexPulse 1.5s ease-in-out infinite;
+}
+
+.hex:nth-child(1) { top: 0; left: 22.5px; animation-delay: 0s; }
+.hex:nth-child(2) { top: 11px; left: 42px; animation-delay: 0.2s; }
+.hex:nth-child(3) { top: 33px; left: 42px; animation-delay: 0.4s; }
+.hex:nth-child(4) { top: 45px; left: 22.5px; animation-delay: 0.6s; }
+.hex:nth-child(5) { top: 33px; left: 3px; animation-delay: 0.8s; }
+.hex:nth-child(6) { top: 11px; left: 3px; animation-delay: 1s; }
+.hex:nth-child(7) { top: 22.5px; left: 22.5px; animation-delay: 1.2s; background: var(--primary-light); width: 20px; height: 20px; }
+
+@keyframes hexSpin { 100% { transform: rotate(360deg); } }
+@keyframes hexPulse { 0%, 100% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.5); opacity: 1; box-shadow: 0 0 15px var(--primary); } }
+
+.loading-text {
+    color: var(--primary-light);
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    animation: pulseText 1.5s ease-in-out infinite;
+}
+@keyframes pulseText { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+
+/* --- Results Content --- */
+.analysis-results-content {
+    padding: 25px;
+    color: #e2e8f0;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-y: auto;
+    text-align: left;
+    height: 100%;
+}
+.analysis-results-content h3 { color: var(--primary); margin-top: 20px; margin-bottom: 12px; font-size: 18px; border-bottom: 1px solid rgba(0, 240, 255, 0.2); padding-bottom: 5px; }
+.analysis-results-content ul { margin-left: 20px; margin-bottom: 15px; }
+.analysis-results-content li { margin-bottom: 6px; }
+
+/* --- Print Styles --- */
+@media print {
+    body * { visibility: hidden; }
+    #analysis-results, #analysis-results * { visibility: visible; }
+    #analysis-results {
+        position: absolute; left: 0; top: 0; width: 100%; background: white !important; color: black !important;
+        box-shadow: none; border: none; overflow: visible;
+    }
+    .analysis-results-content { color: black !important; height: auto; padding: 0; }
+    .analysis-results-content h3 { color: #000 !important; border-bottom: 1px solid #ccc; }
+    .analysis-header { display: none !important; }
+}
