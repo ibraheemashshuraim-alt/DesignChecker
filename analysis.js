@@ -1,4 +1,5 @@
 // analysis.js - Gemini API and Design Analysis logic
+import { firebaseConfig } from './config.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const uploadBtn = document.getElementById('trigger-upload-btn');
@@ -43,8 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const getApiKey = () => {
-        // Explicit logic enforcing priority as requested
-        return localStorage.getItem('user_gemini_key') || localStorage.getItem('gemini-api-key') || apiSettingInput.value.trim() || 'YOUR_DEFAULT_KEY'; 
+        // Enforce priority: Saved Key -> Input Key -> Firebase API Key
+        return localStorage.getItem('user_gemini_key') || localStorage.getItem('gemini-api-key') || apiSettingInput.value.trim() || firebaseConfig.apiKey; 
     };
 
     uploadBtn.addEventListener('click', () => fileInput.click());
