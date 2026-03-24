@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini API Direct Test</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; background: #0f172a; color: #f8fafc; }
+        .card { background: #1e293b; padding: 25px; border-radius: 12px; border: 1px solid #334155; }
+        h2 { color: #00f0ff; margin-top: 0; }
+        input, button { margin: 10px 0; padding: 12px; border-radius: 6px; border: none; }
+        button { background: #00f0ff; color: #0f172a; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.8; transform: translateY(-2px); }
+        #status { font-weight: bold; margin: 15px 0; }
+        pre { background: #020617; color: #10b981; padding: 20px; border-radius: 8px; overflow-x: auto; border: 1px solid #1e293b; min-height: 100px; white-space: pre-wrap; }
+        .error { color: #ef4444; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Gemini API Standalone Test</h2>
+        <p>Select an image to test the direct connection to Google Gemini 1.5 Flash.</p>
+        
+        <input type="file" id="imageInput" accept="image/*">
+        <br>
+        <button id="testBtn">RUN TEST ANALYSIS</button>
+
+        <div id="status">Ready.</div>
+        <h3>API Response:</h3>
+        <pre id="output">Results will appear here...</pre>
+    </div>
+
+    <script>
+        const testBtn = document.getElementById('testBtn');
+        const imageInput = document.getElementById('imageInput');
+        const status = document.getElementById('status');
+        const output = document.getElementById('output');
+
+        // Embedded API Key for Direct Testing
+        const apiKey = "AIzaSyAGtDXyTMf-L6R7_bisYAu8AJlILCnLMRg";
+
+        testBtn.addEventListener('click', async () => {
+            const file = imageInput.files[0];
+            if (!file) return alert("Please select an image first!");
+
+            status.innerHTML = '<span style="color:#00f0ff">Processing... Calling Google API directly.</span>';
+            output.innerText = "Waiting for response...";
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                try {
+                    const base64Data = reader.result.split(',')[1];
+                    const mimeType = file.type;
+
+                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: "Analyze this image briefly and point out 3 layout improvements." },
+                                    { 
+                                        inline_data: { 
+                                            mime_type: mimeType, 
+                                            data: base64Data 
+                                        } 
+                                    }
+                                ]
+                            }]
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No text generated.";
+                        output.innerText = resultText;
+                        status.innerHTML = '<span style="color:#10b981">SUCCESS! API is working perfectly.</span>';
+                    } else {
+                        output.innerText = JSON.stringify(data, null, 2);
+                        status.innerHTML = '<span class="error">API ERROR: Check response below.</span>';
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    output.innerText = err.message;
+                    status.innerHTML = '<span class="error">FETCH FAILED: Check console or network.</span>';
+                }
+            };
+        });
+    </script>
+</body>
+</html>
