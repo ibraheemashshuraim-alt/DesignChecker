@@ -1,5 +1,6 @@
 // analysis.js - Gemini API and Design Analysis logic
-import { firebaseConfig } from './config.js';
+import { firebaseConfig, db } from './config.js';
+import { doc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     const uploadBtn = document.getElementById('trigger-upload-btn');
@@ -44,8 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const getApiKey = () => {
-        // Enforce priority: Saved Key -> Input Key -> Firebase API Key
-        return localStorage.getItem('user_gemini_key') || localStorage.getItem('gemini-api-key') || apiSettingInput.value.trim() || firebaseConfig.apiKey; 
+        // Enforce priority: Saved Key -> Firebase API Key
+        // using window.userAppData for robust global state tracking
+        return window.userAppData?.geminiKey || firebaseConfig.apiKey; 
     };
 
     uploadBtn.addEventListener('click', () => fileInput.click());
@@ -70,6 +72,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     analyseBtn.addEventListener('click', async () => {
         if (!currentImageBase64) return;
+
+        // Check Global Credits State
+        if (!window.userAppData || !window.userAppData.user) {
+            alert("Please login first to use the analyzer.");
+            return;
+        }
+
+        if (window.userAppData.credits <= 0) {
+            alert("You don't have enough credits! Please buy more credits to continue.");
+            return;
+        }
         
         blurryAura.style.display = 'none';
         centerPrompt.style.display = 'none';
@@ -156,6 +169,12 @@ Detailed analysis of the color palette, visual balance, and contrast ratios for 
                 .replace(/\n/gim, '<br>');
 
             resultsContent.innerHTML = formattedHtml;
+            
+            // Deduct 1 Credit directly from Firebase
+            if (window.userAppData && window.userAppData.uid) {
+                const userRef = doc(db, "users", window.userAppData.uid);
+                await updateDoc(userRef, { credits: increment(-1) });
+            }
             
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';

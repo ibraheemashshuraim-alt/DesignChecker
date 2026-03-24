@@ -11,7 +11,18 @@
     <link rel="stylesheet" href="style.css?v=2.8">
 </head>
 <body>
-    <header class="glass-header">
+    <!-- Login Overlay -->
+    <div id="login-overlay" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <div class="logo" style="margin-bottom: 30px; transform: scale(1.5);">
+            <span class="logo-icon"><i class="fas fa-layer-group"></i></span>
+            <h1>Design<span>Check</span></h1>
+        </div>
+        <h2 style="color: white; margin-bottom: 10px; font-weight: 500;">Authentication Required</h2>
+        <p style="color: var(--text-secondary); margin-bottom: 30px;">براہ کرم ڈیش بورڈ تک رسائی کے لیے لاگ ان کریں</p>
+        <button id="main-login-btn" class="glass-btn login-btn" style="padding: 15px 40px; font-size: 18px; border-color: var(--primary); color: white; background: rgba(0, 240, 255, 0.1);"><i class="fab fa-google"></i> Continue with Google</button>
+    </div>
+
+    <header class="glass-header" id="main-header" style="display: none;">
         <div class="header-container">
             <div class="logo">
                 <span class="logo-icon"><i class="fas fa-layer-group"></i></span>
@@ -63,7 +74,7 @@
         </div>
     </header>
 
-    <main id="app-container" class="fade-in">
+    <main id="app-container" class="fade-in" style="display: none;">
         <!-- Dashboard Content will be injected here -->
         
         <section class="welcome-section">
@@ -193,10 +204,9 @@
         </div>
     </div>
 
-    <!-- Project Scripts (Modular) -->
-    <script type="module" src="auth.js"></script>
-    <script type="module" src="credits.js"></script>
-    <script type="module" src="analysis.js?v=4" defer></script>
+    <script type="module" src="auth.js?v=5"></script>
+    <script type="module" src="credits.js?v=5"></script>
+    <script type="module" src="analysis.js?v=5" defer></script>
     <script src="editor.js" defer></script>
 </body>
 </html>
