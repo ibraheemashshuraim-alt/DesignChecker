@@ -69,19 +69,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const uid = localStorage.getItem('uid') || window.userAppData?.uid;
         const credits = window.userAppData?.credits || 0;
 
-        // 1. Connection & Config Check
         if (!apiKey || apiKey === 'YOUR_DEFAULT_KEY') {
             alert("Please set your Gemini API Key in Settings first.");
             return;
         }
 
-        // 2. Login Check
         if (!uid) {
             alert("Please login with Google first!");
             return;
         }
 
-        // 3. Credits Check
         if (credits <= 0) {
             alert("No Credits! Please top-up to continue.");
             return;
@@ -89,78 +86,92 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!currentImageBase64) return;
 
-        // UI Updates
+        // UI Reset
         blurryAura.style.display = 'none';
         centerPrompt.style.display = 'none';
         resultsContent.style.display = 'none';
         printBtn.style.display = 'none';
         loadingState.style.display = 'flex';
-        statusText.innerText = "ANALYSING (STABLE v1)...";
+        statusText.innerText = "DETECTING MODEL...";
 
-        const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // --- Model Auto-Detection Logic ---
+        const testModels = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro-vision'];
+        let workingModel = null;
+        let finalResponseData = null;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Analyze this UI/UX design image thoroughly. Suggest improvements for visual hierarchy, typography, and accessibility. Score it out of 10." },
-                    { 
-                        inline_data: { 
-                            mime_type: currentMimeType, 
-                            data: currentImageBase64 
-                        } 
-                    }
+                    { text: "Analyze this image briefly and evaluate the UI design." },
+                    { inline_data: { mime_type: currentMimeType, data: currentImageBase64 } }
                 ]
             }]
         };
 
         try {
-            console.log("[DEBUG] Sending v1 Stable request to:", endpoint);
-            
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            for (const modelName of testModels) {
+                try {
+                    console.log(`[DEBUG] Attempting Auto-Detection with: ${modelName}`);
+                    statusText.innerText = `TRYING ${modelName.toUpperCase()}...`;
+                    
+                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
 
-            // Console Debugging: Show full response for the user
-            console.log("[DEBUG] Full Response Status:", response.status);
-            const data = await response.json();
-            console.log("[DEBUG] Full Response JSON:", data);
+                    console.log(`[DEBUG] ${modelName} HTTP Status:`, response.status);
+                    const data = await response.json();
+                    console.log(`[DEBUG] ${modelName} Response:`, data);
 
-            if (response.ok) {
-                const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No text returned.";
-                
-                // Format Markdown -> HTML
-                let formattedHtml = responseText
-                    .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-                    .replace(/^## (.*$)/gim, '<h3>$1</h3>')
-                    .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
-                    .replace(/\n/gim, '<br>');
-
-                resultsContent.innerHTML = formattedHtml;
-
-                // Deduct 1 Credit
-                const userRef = doc(db, "users", uid);
-                await updateDoc(userRef, { credits: increment(-1) });
-
-                loadingState.style.display = 'none';
-                resultsContent.style.display = 'block';
-                printBtn.style.display = 'inline-flex';
-                statusText.innerText = "SUCCESS";
-            } else {
-                throw new Error(data.error?.message || `API Error: ${response.status}`);
+                    if (response.ok && data.candidates) {
+                        workingModel = modelName;
+                        finalResponseData = data;
+                        console.log(`[DEBUG] SUCCESS! Model Locked: ${workingModel}`);
+                        break; 
+                    }
+                } catch (err) {
+                    console.error(`[DEBUG] ${modelName} connection error:`, err);
+                }
             }
 
+            if (!workingModel) {
+                throw new Error("No working Gemini model found. Please check your API Key permissions.");
+            }
+
+            // --- Analysis Success Processing ---
+            const resultText = finalResponseData.candidates[0].content.parts[0].text;
+            
+            // Format Output
+            let formattedHtml = resultText
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h3>$1</h3>')
+                .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\n/gim, '<br>');
+
+            resultsContent.innerHTML = formattedHtml;
+
+            // Deduct Credit
+            const userRef = doc(db, "users", uid);
+            await updateDoc(userRef, { credits: increment(-1) });
+
+            loadingState.style.display = 'none';
+            resultsContent.style.display = 'block';
+            printBtn.style.display = 'inline-flex';
+            statusText.innerText = `DONE (${workingModel.split('-')[1]})`;
+
         } catch (error) {
-            console.error("Analysis Error:", error);
+            console.error("Auto-Detection Failed:", error);
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
             resultsContent.innerHTML = `
                 <div style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); padding:20px; border-radius:12px; text-align:center;">
-                    <i class="fas fa-exclamation-triangle" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
-                    <h3 style="color:var(--danger); margin:0;">Connection Failed</h3>
+                    <i class="fas fa-microscope" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
+                    <h3 style="color:var(--danger); margin:0;">Detection Failed</h3>
                     <p style="color:#cbd5e1; font-size:13px;">${error.message}</p>
-                    <p style="color:#94a3b8; font-size:12px;">Open F12 Console and check for the Error Code from Google.</p>
+                    <p style="color:#94a3b8; font-size:12px;">Google sent a 404/403 for all models. Check F12 console.</p>
                 </div>
             `;
             statusText.innerText = "ERROR";
