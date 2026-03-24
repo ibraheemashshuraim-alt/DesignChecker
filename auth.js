@@ -114,9 +114,23 @@ const handleGoogleLogin = async () => {
 mainLoginBtn.addEventListener('click', handleGoogleLogin);
 loginBtn.addEventListener('click', handleGoogleLogin);
 
+// Logout Actions
 logoutBtn.addEventListener('click', () => {
     signOut(auth);
 });
+
+// Force Logout (For account switching & troubleshooting)
+const forceLogoutBtn = document.getElementById('force-logout-btn');
+if (forceLogoutBtn) {
+    forceLogoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('uid');
+        localStorage.removeItem('email');
+        localStorage.removeItem('user_gemini_key');
+        signOut(auth).then(() => {
+            window.location.reload(); // Hard reset
+        });
+    });
+}
 
 profileBtn.addEventListener('click', (e) => {
     e.stopPropagation();

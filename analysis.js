@@ -67,17 +67,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const credits = window.userAppData?.credits || 0;
 
         if (!apiKey || apiKey === 'YOUR_DEFAULT_KEY') {
-            alert("Please set your Gemini API Key in Settings first.");
+            alert("No API Key! Set your Gemini Key in profile.");
             return;
         }
 
         if (!uid) {
-            alert("Please login with Google first!");
+            alert("Please login with Google!");
             return;
         }
 
         if (credits <= 0) {
-            alert("No Credits! Please top-up to continue.");
+            alert("No credits left!");
             return;
         }
 
@@ -89,89 +89,102 @@ document.addEventListener('DOMContentLoaded', () => {
         resultsContent.style.display = 'none';
         printBtn.style.display = 'none';
         loadingState.style.display = 'flex';
-        statusText.innerText = "DETECTING MODEL...";
+        statusText.innerText = "INITIALIZING DETECTION...";
 
-        // --- Model Auto-Detection Logic ---
-        const testModels = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro-vision'];
-        let workingModel = null;
-        let finalResponseData = null;
+        // --- Strategic Raw Fetch (v1 then v1beta Fallback) ---
+        const strategies = [
+            { 
+                tag: 'v1 STABLE',
+                url: `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+                model: 'gemini-1.5-flash'
+            },
+            { 
+                tag: 'v1BETA LATEST',
+                url: `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+                model: 'gemini-1.5-flash-latest'
+            }
+        ];
+
+        let finalData = null;
+        let usedStrategy = null;
 
         const payload = {
             contents: [{
                 parts: [
-                    { text: "Analyze this image briefly and evaluate the UI design." },
-                    { inline_data: { mime_type: currentMimeType, data: currentImageBase64 } }
+                    { text: "Analyze this image for UI design improvements, color balance, and typography." },
+                    { 
+                        inline_data: { 
+                            mime_type: currentMimeType, 
+                            data: currentImageBase64 
+                        } 
+                    }
                 ]
             }]
         };
 
         try {
-            for (const modelName of testModels) {
+            for (const strat of strategies) {
                 try {
-                    console.log(`[DEBUG] Attempting Auto-Detection with: ${modelName}`);
-                    statusText.innerText = `TRYING ${modelName.toUpperCase()}...`;
-                    
-                    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-                    
-                    const response = await fetch(endpoint, {
+                    console.log(`[STRATEGY] Trying: ${strat.tag} (${strat.model})...`);
+                    statusText.innerText = `TRYING ${strat.tag}...`;
+
+                    const response = await fetch(strat.url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
 
-                    console.log(`[DEBUG] ${modelName} HTTP Status:`, response.status);
+                    console.log(`[STRATEGY] HTTP STATUS:`, response.status);
                     const data = await response.json();
-                    console.log(`[DEBUG] ${modelName} Response:`, data);
+                    console.log(`[STRATEGY] FULL JSON:`, data);
 
                     if (response.ok && data.candidates) {
-                        workingModel = modelName;
-                        finalResponseData = data;
-                        console.log(`[DEBUG] SUCCESS! Model Locked: ${workingModel}`);
+                        finalData = data;
+                        usedStrategy = strat;
+                        console.log(`[SUCCESS] Locked on ${strat.tag}`);
                         break; 
                     }
-                } catch (err) {
-                    console.error(`[DEBUG] ${modelName} connection error:`, err);
+                } catch (e) {
+                    console.error(`[STRATEGY] ${strat.tag} Error:`, e);
                 }
             }
 
-            if (!workingModel) {
-                throw new Error("No working Gemini model found. Please check your API Key permissions.");
+            if (!finalData) {
+                throw new Error("Both v1 and v1beta endpoints failed. Check your API Key permissions.");
             }
 
-            // --- Analysis Success Processing ---
-            const resultText = finalResponseData.candidates[0].content.parts[0].text;
-            
-            // Format Output
-            let formattedHtml = resultText
+            // Results UI
+            const markdown = finalData.candidates[0].content.parts[0].text;
+            let html = markdown
                 .replace(/^### (.*$)/gim, '<h3>$1</h3>')
                 .replace(/^## (.*$)/gim, '<h3>$1</h3>')
                 .replace(/\*\*([^*]+)\*\*/gim, '<strong>$1</strong>')
                 .replace(/\n/gim, '<br>');
 
-            resultsContent.innerHTML = formattedHtml;
+            resultsContent.innerHTML = html;
 
-            // Deduct Credit
+            // Credit Deduction
             const userRef = doc(db, "users", uid);
             await updateDoc(userRef, { credits: increment(-1) });
 
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
             printBtn.style.display = 'inline-flex';
-            statusText.innerText = `DONE (${workingModel.split('-')[1]})`;
+            statusText.innerText = `DONE [${usedStrategy.tag}]`;
 
         } catch (error) {
-            console.error("Auto-Detection Failed:", error);
+            console.error("ANALYSIS MASTER FAIL:", error);
             loadingState.style.display = 'none';
             resultsContent.style.display = 'block';
             resultsContent.innerHTML = `
                 <div style="background:rgba(239,68,68,0.1); border:1px solid var(--danger); padding:20px; border-radius:12px; text-align:center;">
-                    <i class="fas fa-microscope" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
-                    <h3 style="color:var(--danger); margin:0;">Detection Failed</h3>
+                    <i class="fas fa-exclamation-circle" style="font-size:32px; color:var(--danger); margin-bottom:10px;"></i>
+                    <h3 style="color:var(--danger); margin:0;">Analysis Failed</h3>
                     <p style="color:#cbd5e1; font-size:13px;">${error.message}</p>
-                    <p style="color:#94a3b8; font-size:12px;">Google sent a 404/403 for all models. Check F12 console.</p>
+                    <p style="color:#94a3b8; font-size:12px;">Try again with a fresh API Key.</p>
                 </div>
             `;
-            statusText.innerText = "ERROR";
+            statusText.innerText = "CRITICAL ERROR";
         }
     });
 
